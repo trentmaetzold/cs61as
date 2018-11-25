@@ -84,9 +84,9 @@
 ;; Exercise 1.33
 (define (filtered-accumulate combiner null-value filter? term a next b)
   (cond ((> a b) null-value)
-	((filter? a) (combiner (term a)
-			       (filtered-accumulate combiner null-value filter? term (next a) next b)))
-	(else (filtered-accumulate combiner null-value filter? term (next a) next b))))
+        ((filter? a) (combiner (term a)
+                               (filtered-accumulate combiner null-value filter? term (next a) next b)))
+        (else (filtered-accumulate combiner null-value filter? term (next a) next b))))
 
 ;; Excercise 1.33a
 (define (sos-prime a b)
@@ -99,3 +99,13 @@
   (define (rel-prime? i)
     (= (gcd i n) 1))
   (filtered-accumulate * 1 rel-prime? identity 1 inc n))
+
+;; Exercise 1.34
+#|
+(define (f g)
+  (g 2))
+
+(f f)
+(f 2)
+(2 2); error, 2 is a literal, not a procedure
+|#
