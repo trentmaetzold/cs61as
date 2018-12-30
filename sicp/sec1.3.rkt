@@ -1,5 +1,7 @@
 #lang sicp
 
+#| ----- Section 1.3.1 ----- |#
+
 (define (square x)
   (* x x))
 
@@ -8,6 +10,9 @@
 
 (define (identity x)
   x)
+
+(define (average x y)
+  (/ (+ x y) 2))
 
 (define (sum term a next b)
   (if (> a b)
@@ -100,6 +105,8 @@
     (= (gcd i n) 1))
   (filtered-accumulate * 1 rel-prime? identity 1 inc n))
 
+#| ----- Section 1.3.2 ----- |#
+
 ;; Exercise 1.34
 #|
 (define (f g)
@@ -109,3 +116,208 @@
 (f 2)
 (2 2); error, 2 is a literal, not a procedure
 |#
+
+#| ----- Section 1.3.3 ----- |#
+
+(define (search f neg-point pos-point)
+  (define (close-enough? x y)
+    (< (abs (- x y)) 0.001))
+  (let ((midpoint (average neg-point pos-point)))
+    (if (close-enough? neg-point pos-point)
+        midpoint
+        (let ((test-value (f midpoint)))
+          (cond ((positive? test-value)
+                 (search f neg-point midpoint))
+                ((negative? test-value)
+                 (search f midpoint pos-point))
+                (else midpoint))))))
+
+(define (half-interval-method f a b)
+  (let ((a-value (f a))
+        (b-value (f b)))
+    (cond ((and (negative? a-value) (positive? b-value))
+           (search f a b))
+          ((and (negative? b-value) (positive? a-value))
+           (search f b a))
+          (else
+           (error "Values are not of opposite sign" a b)))))
+
+(define (fixed-point f first-guess)
+  (define tolerance 0.00001)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+
+(define (sqrt-fp x)
+  (fixed-point (lambda (y) (average y (/ x y)))
+               1.0))
+
+;; Exercise 1.35
+(define golden-ratio-fp
+  (fixed-point (lambda (x) (+ 1 (/ 1 x)))
+               1.0))
+
+;; Exercise 1.36    (Come back after finishing 1.2.2)
+
+;; Exercise 1.37a
+(define (cont-frac n d k)
+  (define (cont-frac-rc i)
+    (if (= i k)
+        (/ (n i) (d i))
+        (/ (n i) (+ (d i) (cont-frac-rc (+ i 1))))))
+  (cont-frac-rc 1))
+
+(define (cont-frac-test k)
+  (cont-frac (lambda (j) 1.0)
+             (lambda (j) 1.0)
+             k))
+
+;; i = 12, accurate to 4 decimal places
+
+;; Exercise 1.37b    (Come back after finishing 1.2.2)
+
+;; Exercise 1.38
+(define euler-cf
+  (+ 2.0 (cont-frac (lambda (j) 1.0)
+                    (lambda (j)
+                      (if (= (remainder (+ j 1) 3) 0)
+                          (- j (quotient j 3))
+                          1.0))
+                    10)))
+
+;; Exercise 1.39
+(define (tan-cf x k)
+  (cont-frac (lambda (j)
+               (if (= j 1)
+                   x
+                   (- (square x))))
+             (lambda (j)
+               (- (* j 2.0) 1.0))
+             k))
+
+#| ------ Section 1.3.4 ----- |#
+
+(define (average-damp f)
+  (lambda (x) (average x (f x))))
+
+(define (sqrt-ad x)
+  (fixed-point (average-damp (lambda (y) (/ x y)))
+               1.0))
+
+(define (cube-root x)
+  (fixed-point (average-damp (lambda (y) (/ x (square y))))
+               1.0))
+
+(define (deriv g)
+  (define dx 0.00001)
+  (lambda (x)
+    (/ (- (g (+ x dx)) (g x))
+       dx)))
+
+(define (newton-transform g)
+  (lambda (x)
+    (- x (/ (g x) ((deriv g) x)))))
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transform g) guess))
+
+(define (sqrt-nm x)
+  (newtons-method (lambda (y) (- (square y) x))
+                  1.0))
+
+(define (fixed-point-of-transform g transform guess)
+  (fixed-point (transform g) guess))
+
+(define (sqrt-fpt x)
+  (fixed-point-of-transform (lambda (y) (/ x y))
+                            average-damp
+                            1.0))
+
+(define (sqrt-fpt-nm x)
+  (fixed-point-of-transform (lambda (y) (- (square y) x))
+                            newton-transform
+                            1.0))
+
+;; Exercise 1.40
+(define (cubic a b c)
+  (lambda (x) (+ (cube x)
+                 (* a (square x))
+                 (* b x)
+                 c)))
+
+;; Exercise 1.41
+(define (double g)
+  (lambda (x) (g (g x))))
+
+#|
+(((double (double double)) inc) 5)
+((double double) ((double double) inc) 5)
+((double double) ((double (double inc)))) 5)
+((double double) ((double (inc (inc x)))) 5)
+((double double) (((inc (inc (inc (inc x)))))) 5)
+(double (double (inc (inc  (inc (inc x))))) 5)
+(double (inc (inc (inc (inc (inc (inc (inc (inc x)))))))) 5)
+(inc (inc (inc (inc (inc (inc (inc (inc (inc (inc (inc (inc (inc (inc (inc (inc 5))))))))))))))))
+21
+|#
+
+;; Exercise 1.42
+(define (compose f g)
+  (lambda (x) (f (g x))))
+
+;; Exercise 1.43
+(define (repeated f n)
+  (define (recurs i)
+    (cond ((= n 1) f)
+          ((= i (- n 1)) (compose f f))
+          (else (compose f (recurs (+ i 1))))))
+  (recurs 1))
+
+;; Exercise 1.44
+(define (smooth f)
+  (define dx 0.00001)
+  (lambda (x) (/ (+ (f (- x dx))
+                    (f x)
+                    (f (+ x dx)))
+                 3)))
+
+;; ((repeated smooth n) f)
+
+;; Exercise 1.45
+;; The tests I've done work, but the solution is quite a bit different than
+;; others I've seen online. The procedure (expt x n) is built-in to R5RS.
+
+(define (root n x)
+  (fixed-point ((repeated average-damp (if (< n 4)
+                                           1
+                                           (- n 2)))
+                (lambda (y) (/ x (expt y (- n 1)))))
+               1.0))
+
+;; Exercise 1.46
+
+(define (iterative-improve good-enough? improve)
+  (lambda (first-guess)
+    (define (try guess)
+      (if (good-enough? guess)
+          guess
+          (try (improve guess))))
+    (try first-guess)))
+
+(define (sqrt-ii x)
+  ((iterative-improve (lambda (y)
+                        (< (abs (- (square y) x)) 0.001))
+                      (lambda (y)
+                        (average y (/ x y))))
+   1.0))
+
+(define (fixed-point-ii f first-guess)
+  ((iterative-improve (lambda (x)
+                        (< (abs (- x (f x))) 0.00001))
+                      f)
+   first-guess))
