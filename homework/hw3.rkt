@@ -6,9 +6,11 @@
 ; Exercise 1 - Define fast-expt-iter
 
 (define (fast-expt-iter b n)
-  ; Your code here
-  (error "Not yet implemented")
-)
+  (define (iter a b n)
+    (cond ((= n 0) a)
+          ((even? n) (iter a (square b) (/ n 2)))
+          (else (iter (* a b) b (- n 1)))))
+  (iter 1 b n))
 
 ; Exericse 2 - Define phi
 
@@ -56,9 +58,17 @@
 ; Exercise 4 - Define next-perf
 
 (define (next-perf n)
-  ;  Your code here
-  (error "Not yet implemented")
-)
+  (define (sum-of-factors i)
+    (define (recurs i k)
+      (cond ((= i k) 0)
+            ((= (remainder i k) 0)
+             (+ k (recurs i (+ k 1))))
+            (else
+             (recurs i (+ k 1)))))
+    (recurs i 1))            
+  (if (= (sum-of-factors n) n)
+      n
+      (next-perf (+ n 1))))
 
 ; Exercise 5 - Explain what happens when the base cases are interchanged.
 
